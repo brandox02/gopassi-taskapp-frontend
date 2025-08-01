@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
-import TaskList from '@/components/List';
+import TaskList from '@/features/tasks/List';
 import { useTaskStore } from '@/features/tasks/task.store';
 import { Text } from '@/components/Themed';
 

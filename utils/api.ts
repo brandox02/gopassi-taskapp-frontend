@@ -26,18 +26,18 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response.status === 401) {
+        if (error?.response?.status === 401) {
             useAuthStore.getState().logout();
-        } else if (error.response) {
+        } else if (error?.response) {
             // El servidor respondió con un código de error (por ejemplo, 400 o 500)
             console.error('Error response:', {
-                url: error.config.url,
-                method: error.config.method,
-                status: error.response.status,
-                data: error.response.data,
-                headers: error.response.headers,
+                url: error?.config?.url,
+                method: error?.config?.method,
+                status: error?.response?.status,
+                data: error?.response?.data,
+                headers: error?.response?.headers,
             });
-        } else if (error.request) {
+        } else if (error?.request) {
             // La solicitud fue hecha pero no hubo respuesta
             console.error('No response received:', {
                 url: error.config?.url,
