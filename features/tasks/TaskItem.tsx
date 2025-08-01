@@ -62,6 +62,7 @@ function TaskItem({ item, editingTaskId,
 
     return (
         <Animated.View
+            key={item.id}
             style={[
                 styles.taskItem,
                 {

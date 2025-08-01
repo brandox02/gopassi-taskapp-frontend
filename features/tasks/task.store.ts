@@ -35,10 +35,8 @@ export const useTaskStore = create<TaskStoreState>((set) => ({
 
   addTask: async (title) => {
     try {
-      const newTask = await TaskService.createTask({ title });
-      set((state) => ({
-        tasks: [...state.tasks, newTask],
-      }));
+      await TaskService.createTask({ title });
+
     } catch (error) {
       set({ error: 'Failed to create task', isLoading: false });
     }
@@ -50,14 +48,11 @@ export const useTaskStore = create<TaskStoreState>((set) => ({
       const taskToUpdate = useTaskStore.getState().tasks.find(t => t.id === id);
 
       if (taskToUpdate) {
-        const updatedTask = await TaskService.updateTask(id, {
+        await TaskService.updateTask(id, {
           title: taskToUpdate.title,
           done: !taskToUpdate.done
         });
-        set((state) => ({
-          tasks: state.tasks.map(t =>
-            t.id === id ? updatedTask : t
-          ),
+        set(() => ({
           loadingTaskId: null
         }));
       }
@@ -69,12 +64,9 @@ export const useTaskStore = create<TaskStoreState>((set) => ({
   updateTask: async (id, newTitle) => {
     set({ loadingTaskId: id });
     try {
-      const updatedTask = await TaskService.updateTask(id, { title: newTitle });
+      await TaskService.updateTask(id, { title: newTitle });
 
-      set((state) => ({
-        tasks: state.tasks.map(t =>
-          t.id === id ? updatedTask : t
-        ),
+      set(() => ({
         loadingTaskId: null
       }));
     } catch (error) {
@@ -86,8 +78,7 @@ export const useTaskStore = create<TaskStoreState>((set) => ({
     set({ loadingTaskId: id });
     try {
       await TaskService.deleteTask(id);
-      set((state) => ({
-        tasks: state.tasks.filter(t => t.id !== id),
+      set(() => ({
         loadingTaskId: null
       }));
     } catch (error) {
