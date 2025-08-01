@@ -1,7 +1,8 @@
 import { useAuthStore } from '@/features/auth/auth.store';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://172.29.16.1:3000';
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://172.29.16.1:3000';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -25,7 +26,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response) {
+        if (error.response.status === 401) {
+            useAuthStore.getState().logout();
+        } else if (error.response) {
             // El servidor respondió con un código de error (por ejemplo, 400 o 500)
             console.error('Error response:', {
                 url: error.config.url,

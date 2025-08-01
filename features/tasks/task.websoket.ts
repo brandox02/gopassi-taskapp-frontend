@@ -2,7 +2,7 @@
 import io, { Socket } from 'socket.io-client';
 import { useTaskStore } from './task.store';
 
-const WEBSOCKET_URL = 'http://172.29.16.1:3000'; // Ajusta según tu entorno
+const WEBSOCKET_URL = process.env.EXPO_PUBLIC_API_URL || 'http://172.29.16.1:3000';
 
 class WebSocketService {
     private socket: Socket | null = null;
