@@ -14,14 +14,17 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/features/auth/auth.hooks';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import { Alert } from 'react-native';
 
 const LoginScreen = () => {
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const colorScheme = useColorScheme();
     const router = useRouter();
+    const { login, isLoading } = useAuth();
 
     const isDarkMode = colorScheme === 'dark';
 
@@ -38,10 +41,16 @@ const LoginScreen = () => {
         placeholder: isDarkMode ? '#888888' : '#999999',
     };
 
-    const handleLogin = () => {
-        setIsLoading(true);
-        // Lógica de login aquí
-        setTimeout(() => setIsLoading(false), 1500);
+    const handleLogin = async () => {
+
+        try {
+            await login({ password: password, username });
+
+            router.push('/(protected)/list');
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert(error?.message || 'Algo salió mal')
+        }
     };
 
     return (
@@ -71,9 +80,9 @@ const LoginScreen = () => {
                     </View>
 
                     <View style={[styles.formContainer, { marginTop: 50 }]}>
-                        {/* Campo de Email */}
+                        {/* Campo username */}
                         <View style={styles.inputGroup}>
-                            <Text style={[styles.label, { color: colors.text }]}>Correo electrónico</Text>
+                            <Text style={[styles.label, { color: colors.text }]}>Nombre de usuario</Text>
                             <View style={[
                                 styles.inputWrapper,
                                 {
@@ -81,19 +90,18 @@ const LoginScreen = () => {
                                     borderColor: colors.inputBorder,
                                 }
                             ]}>
-                                <Ionicons
-                                    name="mail-outline"
+                                <AntDesign
+                                    name="user"
                                     size={20}
                                     color={colors.placeholder}
                                     style={styles.inputIcon}
                                 />
                                 <TextInput
                                     style={[styles.input, { color: colors.text }]}
-                                    placeholder="tu@email.com"
+                                    placeholder="tu_usuario"
                                     placeholderTextColor={colors.placeholder}
-                                    value={email}
-                                    onChangeText={setEmail}
-                                    keyboardType="email-address"
+                                    value={username}
+                                    onChangeText={setUsername}
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                 />
@@ -135,11 +143,6 @@ const LoginScreen = () => {
                                     />
                                 </TouchableOpacity>
                             </View>
-                            <TouchableOpacity style={styles.forgotPasswordButton}>
-                                <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>
-                                    ¿Olvidaste tu contraseña?
-                                </Text>
-                            </TouchableOpacity>
                         </View>
 
                         <TouchableOpacity
@@ -147,11 +150,11 @@ const LoginScreen = () => {
                                 styles.loginButton,
                                 {
                                     backgroundColor: colors.primary,
-                                    opacity: (email && password) ? 1 : 0.7,
+                                    opacity: (username && password) ? 1 : 0.7,
                                 }
                             ]}
                             onPress={handleLogin}
-                            disabled={!email || !password || isLoading}
+                            disabled={!username || !password || isLoading}
                         >
                             {isLoading ? (
                                 <ActivityIndicator color="#FFFFFF" />

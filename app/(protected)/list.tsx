@@ -1,53 +1,26 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
-import TaskList, { Task } from '@/components/List';
+import TaskList from '@/components/List';
+import { useTaskStore } from '@/features/tasks/task.store';
+import { Text } from '@/components/Themed';
 
 
 const TasksScreen = () => {
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [loading, setLoading] = useState(false);
+    const { isLoading, error, fetchTasks } = useTaskStore();
 
-    const handleAddTask = (title: string) => {
-        const newTask: Task = {
-            id: Date.now().toString(),
-            title,
-            completed: false,
-            createdAt: new Date().toISOString(),
-            createdBy: 'Usuario Actual',
-        };
-        setTasks([...tasks, newTask]);
-    };
+    useEffect(() => {
+        fetchTasks();
+    }, []);
 
-    const handleToggleTask = (id: string) => {
-        setTasks(
-            tasks.map((task) =>
-                task.id === id ? { ...task, completed: !task.completed } : task
-            )
-        );
-    };
-
-    const handleEditTask = (id: string, newTitle: string) => {
-        setTasks(
-            tasks.map((task) =>
-                task.id === id ? { ...task, title: newTitle } : task
-            )
-        );
-    };
-
-    const handleDeleteTask = (id: string) => {
-        setTasks(tasks.filter((task) => task.id !== id));
-    };
+    if (isLoading) return <Text>Cargando tareas...</Text>;
+    if (error) return <Text>Error: {error}</Text>;
 
     return (
-        <View style={{ flex: 1, backgroundColor: 'white' }}>
-            <TaskList
-                tasks={tasks}
-                loading={loading}
-                onAddTask={handleAddTask}
-                onToggleTask={handleToggleTask}
-                onEditTask={handleEditTask}
-                onDeleteTask={handleDeleteTask}
-            />
+        <View style={{
+            flex: 1,
+        }}
+        >
+            <TaskList />
         </View>
     );
 };

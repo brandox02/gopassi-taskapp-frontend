@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     View,
     Text,
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    Image,
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
@@ -14,19 +13,55 @@ import {
     Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/features/auth/auth.hooks';
+import { Controller, useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+
+// Esquema de validación
+const registerSchema = yup.object({
+    username: yup
+        .string()
+        .required('Nombre de usuario es requerido')
+        .min(3, 'Mínimo 3 caracteres')
+        .max(20, 'Máximo 20 caracteres')
+        .matches(/^[a-zA-Z0-9_]+$/, 'Solo letras, números y guiones bajos'),
+    fullname: yup
+        .string()
+        .required('Nombre completo es requerido')
+        .min(3, 'Mínimo 3 caracteres')
+        .max(50, 'Máximo 50 caracteres'),
+    email: yup
+        .string()
+        .required('Email es requerido')
+        .email('Email inválido'),
+    password: yup
+        .string()
+        .required('Contraseña es requerida')
+        .min(6, 'Mínimo 6 caracteres'),
+    confirmPassword: yup
+        .string()
+        .required('Confirma tu contraseña')
+        .oneOf([yup.ref('password')], 'Las contraseñas no coinciden'),
+});
+
+type RegisterFormData = yup.InferType<typeof registerSchema>;
 
 const RegisterScreen = () => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const colorScheme = useColorScheme();
-    const router = useRouter()
+    const router = useRouter();
+    const { register, isLoading } = useAuth();
     const isDarkMode = colorScheme === 'dark';
+
+    const {
+        control,
+        handleSubmit,
+        formState: { errors, isValid },
+    } = useForm<RegisterFormData>({
+        resolver: yupResolver(registerSchema),
+        mode: 'onChange',
+    });
 
     // Colores adaptables al tema
     const colors = {
@@ -35,24 +70,28 @@ const RegisterScreen = () => {
         secondaryText: isDarkMode ? '#BBBBBB' : '#666666',
         inputBackground: isDarkMode ? '#1E1E1E' : '#F5F5F5',
         inputBorder: isDarkMode ? '#333333' : '#E0E0E0',
+        inputErrorBorder: isDarkMode ? '#FF453A' : '#FF3B30',
         primary: '#4A90E2',
         error: '#FF3B30',
         success: '#34C759',
         placeholder: isDarkMode ? '#888888' : '#999999',
     };
 
-    const handleRegister = () => {
-        setIsLoading(true);
-        // Lógica de registro aquí
-        setTimeout(() => {
-            setIsLoading(false);
-            //   navigation.navigate('Home');
-            Alert.alert('Tratando de navegador a home');
-        }, 1500);
-    };
+    const onSubmit = async (data: RegisterFormData) => {
+        try {
+            await register({
+                username: data.username,
+                fullname: data.fullname,
+                email: data.email,
+                password: data.password,
+            });
 
-    const passwordsMatch = password === confirmPassword && password.length > 0;
-    const isFormValid = name && email && password && confirmPassword && passwordsMatch;
+            router.push('/(protected)/list');
+        } catch (error: any) {
+            console.error('Registration error:', error);
+            Alert.alert(error?.message || 'Algo salió mal')
+        }
+    };
 
     return (
         <KeyboardAvoidingView
@@ -64,172 +103,253 @@ const RegisterScreen = () => {
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.logoContainer}>
-                    {/* <Image
-                        source={isDarkMode
-                            ? require('./assets/logo-dark.png')
-                            : require('./assets/logo-light.png')}
-                        style={styles.logo}
-                        resizeMode="contain"
-                    /> */}
-                    <Text style={[styles.title, { color: colors.text, marginTop: 30 }]}>Lista de Tareas App</Text>
+                    <Text style={[styles.title, { color: colors.text, marginTop: 30 }]}>
+                        Lista de Tareas App
+                    </Text>
                     <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
                         Completa tu información para registrarte
                     </Text>
                 </View>
 
                 <View style={styles.formContainer}>
-                    {/* Campo de Nombre */}
+                    {/* Campo de Username */}
                     <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>Nombre completo</Text>
-                        <View style={[
-                            styles.inputWrapper,
-                            {
-                                backgroundColor: colors.inputBackground,
-                                borderColor: colors.inputBorder,
-                            }
-                        ]}>
-                            <Ionicons
-                                name="person-outline"
-                                size={20}
-                                color={colors.placeholder}
-                                style={styles.inputIcon}
-                            />
-                            <TextInput
-                                style={[styles.input, { color: colors.text }]}
-                                placeholder="Tu nombre"
-                                placeholderTextColor={colors.placeholder}
-                                value={name}
-                                onChangeText={setName}
-                                autoCapitalize="words"
-                            />
-                        </View>
+                        <Text style={[styles.label, { color: colors.text }]}>
+                            Nombre de usuario
+                        </Text>
+                        <Controller
+                            control={control}
+                            name="username"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <View
+                                    style={[
+                                        styles.inputWrapper,
+                                        {
+                                            backgroundColor: colors.inputBackground,
+                                            borderColor: errors.username
+                                                ? colors.inputErrorBorder
+                                                : colors.inputBorder,
+                                        },
+                                    ]}
+                                >
+                                    <Ionicons
+                                        name="person-outline"
+                                        size={20}
+                                        color={colors.placeholder}
+                                        style={styles.inputIcon}
+                                    />
+                                    <TextInput
+                                        style={[styles.input, { color: colors.text }]}
+                                        placeholder="tu_usuario"
+                                        placeholderTextColor={colors.placeholder}
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                    />
+                                </View>
+                            )}
+                        />
+                        {errors.username && (
+                            <Text style={[styles.errorText, { color: colors.error }]}>
+                                {errors.username.message}
+                            </Text>
+                        )}
+                    </View>
+
+                    {/* Campo de Nombre completo */}
+                    <View style={styles.inputGroup}>
+                        <Text style={[styles.label, { color: colors.text }]}>
+                            Nombre completo
+                        </Text>
+                        <Controller
+                            control={control}
+                            name="fullname"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <View
+                                    style={[
+                                        styles.inputWrapper,
+                                        {
+                                            backgroundColor: colors.inputBackground,
+                                            borderColor: errors.fullname
+                                                ? colors.inputErrorBorder
+                                                : colors.inputBorder,
+                                        },
+                                    ]}
+                                >
+                                    <Ionicons
+                                        name="person-circle-outline"
+                                        size={20}
+                                        color={colors.placeholder}
+                                        style={styles.inputIcon}
+                                    />
+                                    <TextInput
+                                        style={[styles.input, { color: colors.text }]}
+                                        placeholder="Tu nombre completo"
+                                        placeholderTextColor={colors.placeholder}
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        autoCapitalize="words"
+                                    />
+                                </View>
+                            )}
+                        />
+                        {errors.fullname && (
+                            <Text style={[styles.errorText, { color: colors.error }]}>
+                                {errors.fullname.message}
+                            </Text>
+                        )}
                     </View>
 
                     {/* Campo de Email */}
                     <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>Correo electrónico</Text>
-                        <View style={[
-                            styles.inputWrapper,
-                            {
-                                backgroundColor: colors.inputBackground,
-                                borderColor: colors.inputBorder,
-                            }
-                        ]}>
-                            <Ionicons
-                                name="mail-outline"
-                                size={20}
-                                color={colors.placeholder}
-                                style={styles.inputIcon}
-                            />
-                            <TextInput
-                                style={[styles.input, { color: colors.text }]}
-                                placeholder="tu@email.com"
-                                placeholderTextColor={colors.placeholder}
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                            />
-                        </View>
+                        <Text style={[styles.label, { color: colors.text }]}>
+                            Correo electrónico
+                        </Text>
+                        <Controller
+                            control={control}
+                            name="email"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <View
+                                    style={[
+                                        styles.inputWrapper,
+                                        {
+                                            backgroundColor: colors.inputBackground,
+                                            borderColor: errors.email
+                                                ? colors.inputErrorBorder
+                                                : colors.inputBorder,
+                                        },
+                                    ]}
+                                >
+                                    <Ionicons
+                                        name="mail-outline"
+                                        size={20}
+                                        color={colors.placeholder}
+                                        style={styles.inputIcon}
+                                    />
+                                    <TextInput
+                                        style={[styles.input, { color: colors.text }]}
+                                        placeholder="tu@email.com"
+                                        placeholderTextColor={colors.placeholder}
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                    />
+                                </View>
+                            )}
+                        />
+                        {errors.email && (
+                            <Text style={[styles.errorText, { color: colors.error }]}>
+                                {errors.email.message}
+                            </Text>
+                        )}
                     </View>
 
                     {/* Campo de Contraseña */}
                     <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>Contraseña</Text>
-                        <View style={[
-                            styles.inputWrapper,
-                            {
-                                backgroundColor: colors.inputBackground,
-                                borderColor: colors.inputBorder,
-                            }
-                        ]}>
-                            <Ionicons
-                                name="lock-closed-outline"
-                                size={20}
-                                color={colors.placeholder}
-                                style={styles.inputIcon}
-                            />
-                            <TextInput
-                                style={[styles.input, { color: colors.text }]}
-                                placeholder="••••••••"
-                                placeholderTextColor={colors.placeholder}
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry={!showPassword}
-                            />
-                            <TouchableOpacity
-                                onPress={() => setShowPassword(!showPassword)}
-                                style={styles.passwordToggle}
-                            >
-                                <Ionicons
-                                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                                    size={20}
-                                    color={colors.placeholder}
-                                />
-                            </TouchableOpacity>
-                        </View>
-                        {password.length > 0 && password.length < 6 && (
+                        <Text style={[styles.label, { color: colors.text }]}>
+                            Contraseña
+                        </Text>
+                        <Controller
+                            control={control}
+                            name="password"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <View
+                                    style={[
+                                        styles.inputWrapper,
+                                        {
+                                            backgroundColor: colors.inputBackground,
+                                            borderColor: errors.password
+                                                ? colors.inputErrorBorder
+                                                : colors.inputBorder,
+                                        },
+                                    ]}
+                                >
+                                    <Ionicons
+                                        name="lock-closed-outline"
+                                        size={20}
+                                        color={colors.placeholder}
+                                        style={styles.inputIcon}
+                                    />
+                                    <TextInput
+                                        style={[styles.input, { color: colors.text }]}
+                                        placeholder="••••••••"
+                                        placeholderTextColor={colors.placeholder}
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        secureTextEntry={true}
+                                    />
+                                </View>
+                            )}
+                        />
+                        {errors.password && (
                             <Text style={[styles.errorText, { color: colors.error }]}>
-                                La contraseña debe tener al menos 6 caracteres
+                                {errors.password.message}
                             </Text>
                         )}
                     </View>
 
                     {/* Campo de Confirmar Contraseña */}
                     <View style={styles.inputGroup}>
-                        <Text style={[styles.label, { color: colors.text }]}>Confirmar contraseña</Text>
-                        <View style={[
-                            styles.inputWrapper,
-                            {
-                                backgroundColor: colors.inputBackground,
-                                borderColor: !passwordsMatch && confirmPassword ? colors.error : colors.inputBorder,
-                            }
-                        ]}>
-                            <Ionicons
-                                name="lock-closed-outline"
-                                size={20}
-                                color={colors.placeholder}
-                                style={styles.inputIcon}
-                            />
-                            <TextInput
-                                style={[styles.input, { color: colors.text }]}
-                                placeholder="••••••••"
-                                placeholderTextColor={colors.placeholder}
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                                secureTextEntry={!showConfirmPassword}
-                            />
-                            <TouchableOpacity
-                                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                                style={styles.passwordToggle}
-                            >
-                                <Ionicons
-                                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                                    size={20}
-                                    color={colors.placeholder}
-                                />
-                            </TouchableOpacity>
-                        </View>
-                        {!passwordsMatch && confirmPassword && (
+                        <Text style={[styles.label, { color: colors.text }]}>
+                            Confirmar contraseña
+                        </Text>
+                        <Controller
+                            control={control}
+                            name="confirmPassword"
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <View
+                                    style={[
+                                        styles.inputWrapper,
+                                        {
+                                            backgroundColor: colors.inputBackground,
+                                            borderColor: errors.confirmPassword
+                                                ? colors.inputErrorBorder
+                                                : colors.inputBorder,
+                                        },
+                                    ]}
+                                >
+                                    <Ionicons
+                                        name="lock-closed-outline"
+                                        size={20}
+                                        color={colors.placeholder}
+                                        style={styles.inputIcon}
+                                    />
+                                    <TextInput
+                                        style={[styles.input, { color: colors.text }]}
+                                        placeholder="••••••••"
+                                        placeholderTextColor={colors.placeholder}
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        secureTextEntry={true}
+                                    />
+                                </View>
+                            )}
+                        />
+                        {errors.confirmPassword && (
                             <Text style={[styles.errorText, { color: colors.error }]}>
-                                Las contraseñas no coinciden
+                                {errors.confirmPassword.message}
                             </Text>
                         )}
                     </View>
-
-
 
                     {/* Botón de Registro */}
                     <TouchableOpacity
                         style={[
                             styles.registerButton,
                             {
-                                backgroundColor: isFormValid ? colors.primary : `${colors.primary}80`,
-                            }
+                                backgroundColor: isValid ? colors.primary : `${colors.primary}80`,
+                            },
                         ]}
-                        onPress={handleRegister}
-                        disabled={!isFormValid || isLoading}
+                        onPress={handleSubmit(onSubmit)}
+                        disabled={!isValid || isLoading}
                     >
                         {isLoading ? (
                             <ActivityIndicator color="#FFFFFF" />
@@ -255,6 +375,7 @@ const RegisterScreen = () => {
     );
 };
 
+// Los estilos se mantienen igual que en tu código original
 const styles = StyleSheet.create({
     container: {
         flex: 1,

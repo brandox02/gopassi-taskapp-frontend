@@ -12,34 +12,24 @@ import {
     useColorScheme,
     Animated,
     Alert,
+    RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTaskStore } from '@/features/tasks/task.store';
+import { Task } from '@/features/tasks/types';
 
-export interface Task {
-    id: string;
-    title: string;
-    completed: boolean;
-    createdAt: string;
-    createdBy: string;
-}
-
-interface TaskListProps {
-    tasks: Task[];
-    loading: boolean;
-    onAddTask: (title: string) => void;
-    onToggleTask: (id: string) => void;
-    onEditTask: (id: string, newTitle: string) => void;
-    onDeleteTask: (id: string) => void;
-}
-
-const TaskList: React.FC<TaskListProps> = ({
-    tasks,
-    loading,
-    onAddTask,
-    onToggleTask,
-    onEditTask,
-    onDeleteTask,
-}) => {
+const TaskList: React.FC = () => {
+    const {
+        tasks,
+        isLoading,
+        error,
+        addTask,
+        toggleTask,
+        updateTask,
+        deleteTask,
+        fetchTasks
+    } = useTaskStore();
+    console.log({ tasks: JSON.stringify(tasks) });
     const [newTaskTitle, setNewTaskTitle] = React.useState('');
     const [editingTaskId, setEditingTaskId] = React.useState<string | null>(null);
     const [editingText, setEditingText] = React.useState('');
@@ -48,6 +38,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
     const isDarkMode = colorScheme === 'dark';
 
+    // Colores adaptables al tema
     const colors = {
         background: isDarkMode ? '#121212' : '#FFFFFF',
         text: isDarkMode ? '#FFFFFF' : '#000000',
@@ -59,31 +50,19 @@ const TaskList: React.FC<TaskListProps> = ({
         error: '#E57373',
         inputBackground: isDarkMode ? '#2D2D2D' : '#F0F0F0',
         warning: '#FFA000',
+        placeholder: isDarkMode ? '#888888' : '#999999',
     };
 
-    const handleDeleteConfirmation = (id: string) => {
-        Alert.alert(
-            "Confirmar eliminación",
-            "¿Estás seguro de que quieres eliminar esta tarea?",
-            [
-                {
-                    text: "Cancelar",
-                    style: "cancel",
-                    onPress: () => console.log("Cancelado")
-                },
-                {
-                    text: "Eliminar",
-                    onPress: () => onDeleteTask(id),
-                    style: "destructive"
-                }
-            ],
-            { cancelable: true }
-        );
-    };
+    // Manejar errores
+    React.useEffect(() => {
+        if (error) {
+            Alert.alert('Error', error);
+        }
+    }, [error]);
 
     const handleAddTask = () => {
         if (newTaskTitle.trim()) {
-            onAddTask(newTaskTitle);
+            addTask(newTaskTitle);
             setNewTaskTitle('');
         }
     };
@@ -91,7 +70,6 @@ const TaskList: React.FC<TaskListProps> = ({
     const startEditing = (task: Task) => {
         setEditingTaskId(task.id);
         setEditingText(task.title);
-        // Animación al iniciar edición
         fadeAnim.setValue(0);
         Animated.timing(fadeAnim, {
             toValue: 1,
@@ -116,24 +94,31 @@ const TaskList: React.FC<TaskListProps> = ({
             Alert.alert(
                 'Campo vacío',
                 'El texto de la tarea no puede estar vacío',
-                [{ text: 'OK', onPress: () => { } }]
+                [{ text: 'OK' }]
             );
             return;
         }
 
         if (editingText.trim() !== tasks.find(t => t.id === id)?.title) {
-            onEditTask(id, editingText);
+            updateTask(id, editingText);
         }
         cancelEditing();
     };
 
-    const confirmDelete = (id: string) => {
+    const handleDeleteConfirmation = (id: string) => {
         Alert.alert(
-            'Eliminar tarea',
-            '¿Estás seguro de que quieres eliminar esta tarea?',
+            "Confirmar eliminación",
+            "¿Estás seguro de que quieres eliminar esta tarea?",
             [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Eliminar', onPress: () => onDeleteTask(id), style: 'destructive' },
+                {
+                    text: "Cancelar",
+                    style: "cancel"
+                },
+                {
+                    text: "Eliminar",
+                    onPress: () => deleteTask(id),
+                    style: "destructive"
+                }
             ]
         );
     };
@@ -160,11 +145,14 @@ const TaskList: React.FC<TaskListProps> = ({
                 }
             ]}
         >
-            <TouchableOpacity onPress={() => onToggleTask(item.id)} style={styles.checkboxContainer}>
+            <TouchableOpacity
+                onPress={() => toggleTask(item.id)}
+                style={styles.checkboxContainer}
+            >
                 <Ionicons
-                    name={item.completed ? 'checkbox-outline' : 'square-outline'}
+                    name={item.done ? 'checkbox-outline' : 'square-outline'}
                     size={24}
-                    color={item.completed ? colors.completed : colors.text}
+                    color={item.done ? colors.completed : colors.text}
                 />
             </TouchableOpacity>
 
@@ -201,13 +189,13 @@ const TaskList: React.FC<TaskListProps> = ({
                 <>
                     <TouchableOpacity
                         style={styles.taskTextContainer}
-                        onPress={() => onToggleTask(item.id)}
+                        onPress={() => toggleTask(item.id)}
                         onLongPress={() => startEditing(item)}
                     >
                         <Text
                             style={[
                                 styles.taskText,
-                                item.completed && styles.completedTaskText,
+                                item.done && styles.completedTaskText,
                                 { color: colors.text },
                             ]}
                             numberOfLines={2}
@@ -215,7 +203,7 @@ const TaskList: React.FC<TaskListProps> = ({
                             {item.title}
                         </Text>
                         <Text style={[styles.taskMeta, { color: colors.secondaryText }]}>
-                            {new Date(item.createdAt).toLocaleDateString()} • {item.createdBy}
+                            {new Date(item.createdAt).toLocaleDateString()} • {item?.user?.username}
                         </Text>
                     </TouchableOpacity>
 
@@ -244,7 +232,7 @@ const TaskList: React.FC<TaskListProps> = ({
             style={[styles.container, { backgroundColor: colors.background }]}
             keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 70}
         >
-            {loading && tasks.length === 0 ? (
+            {isLoading && tasks.length === 0 ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
                 </View>
@@ -263,6 +251,14 @@ const TaskList: React.FC<TaskListProps> = ({
                             </Text>
                         </View>
                     }
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isLoading}
+                            onRefresh={fetchTasks}
+                            colors={[colors.primary]}
+                            tintColor={colors.primary}
+                        />
+                    }
                 />
             )}
 
@@ -273,23 +269,31 @@ const TaskList: React.FC<TaskListProps> = ({
             }]}
             >
                 <TextInput
-                    style={[styles.input, { color: colors.text, backgroundColor: colors.inputBackground }]}
+                    style={[styles.input, {
+                        color: colors.text,
+                        backgroundColor: colors.inputBackground
+                    }]}
                     placeholder="Añadir nueva tarea..."
                     placeholderTextColor={colors.secondaryText}
                     value={newTaskTitle}
                     onChangeText={setNewTaskTitle}
                     onSubmitEditing={handleAddTask}
+                    editable={!isLoading}
                 />
                 <TouchableOpacity
                     onPress={handleAddTask}
                     style={styles.addButton}
-                    disabled={!newTaskTitle.trim()}
+                    disabled={!newTaskTitle.trim() || isLoading}
                 >
-                    <Ionicons
-                        name="send"
-                        size={24}
-                        color={newTaskTitle.trim() ? colors.primary : colors.secondaryText}
-                    />
+                    {isLoading ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                        <Ionicons
+                            name="send"
+                            size={24}
+                            color={newTaskTitle.trim() ? colors.primary : colors.secondaryText}
+                        />
+                    )}
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
@@ -349,7 +353,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         padding: 12,
-
         borderTopWidth: 1,
         position: 'absolute',
         bottom: 5,

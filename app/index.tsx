@@ -6,8 +6,8 @@ import { Redirect } from 'expo-router';
 
 export default function Index() {
 
-  return <Redirect href="/(protected)/list" />;
-  // return <Redirect href="/(public)/login" />;
+  // return <Redirect href="/(protected)/list" />;
+  return <Redirect href="/(public)/login" />;
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tab One</Text>
