@@ -112,11 +112,18 @@ npm start
 
 Esto iniciará el servidor de desarrollo de Expo. Puedes:
 
-- Escanear el código QR con la app Expo Go en tu dispositivo móvil
-- Presionar `i` para abrir en un emulador iOS(en caso de que estes en macbook y
-  tengas xCode instalado)
-- Presionar `a` para abrir en un emulador Android (en caso de que tengas android
-  studio instalado con emuladores)
+- Presionar `a` para abrir en un emulador Android. Se necesita tener instalado
+  Android Studio y un emulador android. **Recomendado**
+
+- Presionar `i` para abrir en un emulador iOS. Se necesita que estes en una
+  macbook y tengas xCode instalado.
+
+- Escanear el código QR con la app Expo Go en tu dispositivo móvil. . Sin
+  embargo, esta opción **no siempre es recomendable**, ya que al ejecutar la
+  aplicación desde un teléfono externo, puede que no logre acceder a la API que
+  está corriendo en tu PC, incluso si ambos están conectados a la misma red.
+  Esto suele deberse a restricciones como firewalls, bloqueos de red u otras
+  configuraciones de seguridad.
 
 #### 5. Nota sobre el backend
 
