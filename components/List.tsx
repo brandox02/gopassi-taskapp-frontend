@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTaskStore } from '@/features/tasks/task.store';
 import { Task } from '@/features/tasks/types';
+import TaskItem from '@/features/tasks/TaskItem';
 
 const TaskList: React.FC = () => {
     const {
@@ -27,14 +28,16 @@ const TaskList: React.FC = () => {
         toggleTask,
         updateTask,
         deleteTask,
-        fetchTasks
+        fetchTasks,
+        loadingTaskId
     } = useTaskStore();
-    console.log({ tasks: JSON.stringify(tasks) });
+
     const [newTaskTitle, setNewTaskTitle] = React.useState('');
     const [editingTaskId, setEditingTaskId] = React.useState<string | null>(null);
     const [editingText, setEditingText] = React.useState('');
     const colorScheme = useColorScheme();
     const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
 
     const isDarkMode = colorScheme === 'dark';
 
@@ -123,108 +126,17 @@ const TaskList: React.FC = () => {
         );
     };
 
-    const renderTaskItem = ({ item }: { item: Task }) => (
-        <Animated.View
-            style={[
-                styles.taskItem,
-                {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    opacity: editingTaskId === item.id ? fadeAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 1]
-                    }) : 1,
-                    transform: [
-                        {
-                            scale: editingTaskId === item.id ? fadeAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [1, 1.02]
-                            }) : 1
-                        }
-                    ]
-                }
-            ]}
-        >
-            <TouchableOpacity
-                onPress={() => toggleTask(item.id)}
-                style={styles.checkboxContainer}
-            >
-                <Ionicons
-                    name={item.done ? 'checkbox-outline' : 'square-outline'}
-                    size={24}
-                    color={item.done ? colors.completed : colors.text}
-                />
-            </TouchableOpacity>
 
-            {editingTaskId === item.id ? (
-                <View style={styles.editContainer}>
-                    <TextInput
-                        style={[styles.editInput, {
-                            color: colors.text,
-                            backgroundColor: colors.inputBackground
-                        }]}
-                        value={editingText}
-                        onChangeText={setEditingText}
-                        autoFocus
-                        onSubmitEditing={() => submitEdit(item.id)}
-                        placeholder="Editar tarea..."
-                        placeholderTextColor={colors.placeholder}
-                    />
-                    <View style={styles.editButtons}>
-                        <TouchableOpacity
-                            onPress={() => submitEdit(item.id)}
-                            style={styles.saveButton}
-                        >
-                            <Ionicons name="checkmark" size={20} color={colors.completed} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={cancelEditing}
-                            style={styles.cancelButton}
-                        >
-                            <Ionicons name="close" size={20} color={colors.error} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            ) : (
-                <>
-                    <TouchableOpacity
-                        style={styles.taskTextContainer}
-                        onPress={() => toggleTask(item.id)}
-                        onLongPress={() => startEditing(item)}
-                    >
-                        <Text
-                            style={[
-                                styles.taskText,
-                                item.done && styles.completedTaskText,
-                                { color: colors.text },
-                            ]}
-                            numberOfLines={2}
-                        >
-                            {item.title}
-                        </Text>
-                        <Text style={[styles.taskMeta, { color: colors.secondaryText }]}>
-                            {new Date(item.createdAt).toLocaleDateString()} • {item?.user?.username}
-                        </Text>
-                    </TouchableOpacity>
 
-                    <View style={styles.actionButtons}>
-                        <TouchableOpacity
-                            onPress={() => startEditing(item)}
-                            style={styles.editButton}
-                        >
-                            <Ionicons name="create-outline" size={20} color={colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => handleDeleteConfirmation(item.id)}
-                            style={styles.deleteButton}
-                        >
-                            <Ionicons name="trash-outline" size={20} color={colors.error} />
-                        </TouchableOpacity>
-                    </View>
-                </>
-            )}
-        </Animated.View>
-    );
+    const renderTaskItem = ({ item }: { item: Task }) => {
+
+        return <TaskItem {...{
+            cancelEditing, editingTaskId, editingText, handleDeleteConfirmation,
+            item, setEditingText, startEditing, submitEdit
+        }}
+        />
+    };
+
 
     return (
         <KeyboardAvoidingView
@@ -405,6 +317,39 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginTop: 16,
         textAlign: 'center',
+    },
+
+
+    skeletonBox: {
+        borderRadius: 6,
+        backgroundColor: '#e0e0e0', // puedes usar un color neutro o `colors.skeleton`
+    },
+
+    skeletonContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    skeletonContent: {
+        flex: 1,
+    },
+    skeletonActions: {
+        flexDirection: 'row',
+        width: 80,
+        justifyContent: 'space-between',
+    },
+    skeletonActionButton: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+    },
+    shimmer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
 });
 

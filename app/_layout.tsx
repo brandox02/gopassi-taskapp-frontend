@@ -7,6 +7,8 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { useAuth } from '@/features/auth/auth.hooks';
+import { webSocketService } from '@/features/tasks/task.websoket';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -24,6 +26,7 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const { isAuthenticated, accessToken } = useAuth();
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
@@ -39,6 +42,18 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  useEffect(() => {
+    if (accessToken) {
+      // Inicializar WebSocket cuando el usuario está autenticado
+      webSocketService.initialize(accessToken);
+
+      return () => {
+        // Limpiar al desmontar
+        webSocketService.disconnect();
+      };
+    }
+  }, [accessToken]);
 
   if (!loaded) {
     return null;

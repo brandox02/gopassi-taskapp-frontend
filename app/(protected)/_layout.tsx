@@ -30,7 +30,7 @@ export default function ProtectedLayout() {
             <Stack.Screen
                 name="list"
                 options={{
-                    title: 'Lista de Tareas', headerTitle: 'Lista de Tareas',
+                    title: `Tareas de ${user?.fullname ?? 'usuario'}`, headerTitle: `Tareas de ${user?.fullname ?? 'usuario'}`,
                     headerBackVisible: false,
                 }}
             />
